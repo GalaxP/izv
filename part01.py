@@ -60,7 +60,12 @@ def fourier_partial_sums(
     Výpočet vektorizujte pomocí NumPy; nepoužívejte cykly přes časové body
     ani harmonické složky.
     """
-    return np.zeros((n_terms, t.shape[0]))  # TODO: implementujte vektorizovany vypocet
+
+    odd = np.arange(n_terms) * 2 + 1
+    terms = np.sin(t[np.newaxis, :] * odd[:, np.newaxis]) / odd[:, np.newaxis]
+    summed = np.cumsum(terms, axis=0)
+
+    return (summed * 4) / np.pi
 
 
 def plot_fourier(
@@ -114,6 +119,10 @@ def download_data() -> Dict[str, List[Any]]:
 if __name__ == "__main__":
     # tady si můžete dělat libovolné změny. Nemodifikujte ale strukturu výše 
     # (přidávat funkce můžete, ale při importu se nesmí nic spoštět!)
+    #fourier_partial_sums(np.arange(10), 2)
+    # make sure no more code is executed after this point
+    #exit()
+
     A = fourier_partial_sums(np.linspace(-10, 10, 200), 2)
     B = fourier_partial_sums_bad(np.linspace(-10, 10, 200), 2)
     np.testing.assert_allclose(A, B, rtol=1e-12, atol=1e-12, err_msg="Vektorizace nefunguje!")
