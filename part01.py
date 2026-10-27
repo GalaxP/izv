@@ -87,6 +87,42 @@ def plot_fourier(
     harmonických složek od 1 do n_terms na svislé ose. Pro interval
     0 až 4π nastavte značky na násobky π/2 a popisky vysázejte v LaTeXu.
     """
+    fig, ax = plt.subplots()
+    img = ax.imshow(
+        S,
+        origin="lower",
+        extent=[t[0], t[-1], 0.5, S.shape[0] + 0.5],
+        aspect="auto",
+        cmap="coolwarm"
+    )
+    ax.set_title("Částečné součty Fourierovy řady")
+
+    ax.set_xlabel(r"$t$")
+
+    # stolen from prednaska :)
+    def format_func(value, tick_number):
+        N = int(np.round(2 * value / np.pi))
+        if N>=0 and N < 3:
+            return {0:"0", 1: r"$\pi/2$", 2: r"$\pi$"}[N]
+        elif N % 2 > 0:
+            return rf"${N}\pi/2$"
+        else:
+            return rf"${N // 2}\pi$"
+    ax.set_xlim(0,4*np.pi)
+    ax.xaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
+    ax.xaxis.set_minor_locator(plt.MultipleLocator(np.pi / 4))
+    ax.xaxis.set_major_formatter(plt.FuncFormatter(format_func))
+    ax.set_ylabel(r"Počet harmonických zložek")
+
+    cbar = fig.colorbar(img, ax=ax, pad=0.03, aspect=20)
+    cbar.set_label('Amplituda', fontsize=12) 
+
+    if show_figure:
+        plt.show()
+
+    if save_path is not None:
+        fig.savefig(save_path, dpi=300)
+
     pass
 
 
