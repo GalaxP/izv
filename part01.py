@@ -175,8 +175,18 @@ def generate_approx(
     error = y2 - f
     ax2.plot(t, error, "k", alpha=.4, linewidth=.6)
     ax2.set_ylabel(r"S$_{5}$(t) - f(t)")
-    ax2.fill_between(t, np.where(error >= 0, error, np.nan), color="green", alpha=0.4)
-    ax2.fill_between(t, np.where(error < 0, error, np.nan), color="red", alpha=0.4)
+    ax2.fill_between(
+        t,
+        np.where(error >= 0, error, np.nan),
+        color="green",
+        alpha=0.4
+    )
+    ax2.fill_between(
+        t,
+        np.where(error < 0, error, np.nan),
+        color="red",
+        alpha=0.4
+    )
 
     ax2.set_xlabel(r"$t$")
 
@@ -200,7 +210,7 @@ def download_data() -> Dict[str, List[Any]]:
     if (response.status_code != 200):
         raise HTTPError
 
-    # force utf-8 еncoding
+    # force utf-8 encoding
     response.encoding = 'utf-8'
     response_text = response.text
 
@@ -238,7 +248,13 @@ if __name__ == "__main__":
     # (přidávat funkce můžete, ale při importu se nesmí nic spoštět!)
     A = fourier_partial_sums(np.linspace(-10, 10, 200), 2)
     B = fourier_partial_sums_bad(np.linspace(-10, 10, 200), 2)
-    np.testing.assert_allclose(A, B, rtol=1e-12, atol=1e-12, err_msg="Vektorizace nefunguje!")
+    np.testing.assert_allclose(
+        A,
+        B,
+        rtol=1e-12,
+        atol=1e-12,
+        err_msg="Vektorizace nefunguje!"
+    )
 
     t = np.linspace(0, 4 * np.pi, 500)
     # Pro vizualizaci lze použít referenční pomalou implementaci.
