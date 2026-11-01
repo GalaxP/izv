@@ -205,7 +205,7 @@ class HTTPError(Exception):
 def download_data() -> Dict[str, List[Any]]:
     """Stáhne tabulku meteorologických stanic a vrátí slovník se seznamy
     positions, lats, longs a heights."""
-    
+
     url = "https://ehw.fit.vutbr.cz/izv/st_zemepis_cz.html"
     response = requests.get(url)
     if (response.status_code != 200):
