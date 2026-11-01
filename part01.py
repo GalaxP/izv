@@ -186,16 +186,53 @@ def generate_approx(
         fig.savefig(save_path, dpi=300)
 
 
+class HTTPError(Exception):
+    """Exception is thrown, if the HTTP request fails"""
+    pass
+
 def download_data() -> Dict[str, List[Any]]:
     """Stáhne tabulku meteorologických stanic a vrátí slovník se seznamy
     positions, lats, longs a heights."""
-    pass
+    url = "https://ehw.fit.vutbr.cz/izv/st_zemepis_cz.html"
+    response = requests.get(url)
+    if(response.status_code != 200):
+        raise HTTPError
+
+    # force utf-8 еncoding
+    response.encoding = 'utf-8'
+    response_text = response.text
+
+    result = {
+        "positions": [],
+        "lats": [],
+        "longs": [],
+        "heights": []
+    }
+
+    soup = BeautifulSoup(response_text, 'html.parser')
+    table_rows = soup.select('tr.nezvyraznit')
+    for row in table_rows:
+        children = [child for child in row.children if child.name is not None]  # filter out empty lines
+        result["positions"].append(children[0].find('strong').text)
+        lats_string = children[2].text[:-1]
+        # replace comma with a dot, so we can convert to float
+        lats_float = float(lats_string.replace(",", "."))
+        result["lats"].append(lats_float)
+
+        longs_string = children[4].text[:-1]
+        longs_float = float(longs_string.replace(",", "."))
+        result["longs"].append(longs_float)
+
+        heights_string = children[-1].text
+        heights_float = float(heights_string.replace(",", "."))
+        result["heights"].append(heights_float)
+
+    return result
 
 
 if __name__ == "__main__":
     # tady si můžete dělat libovolné změny. Nemodifikujte ale strukturu výše 
     # (přidávat funkce můžete, ale při importu se nesmí nic spoštět!)
-
     A = fourier_partial_sums(np.linspace(-10, 10, 200), 2)
     B = fourier_partial_sums_bad(np.linspace(-10, 10, 200), 2)
     np.testing.assert_allclose(A, B, rtol=1e-12, atol=1e-12, err_msg="Vektorizace nefunguje!")
