@@ -18,10 +18,7 @@ import requests
 
 
 AI_USAGE = """
-TODO: Uveďte, zda jste při řešení použili AI nástroje. Pokud ano, napište
-které nástroje, k jakému účelu a u kterých částí řešení jste je použili
-(např. revize kódu, hledání dokumentace nebo vysvětlení funkcí).
-Pokud jste AI nepoužili, napište: „AI nástroje jsem nepoužil/a.“
+Antropic Sonnet - revizia kodu pred odovzdanim
 """
 
 
@@ -67,15 +64,19 @@ def fourier_partial_sums(
 
     return (summed * 4) / np.pi
 
-# stolen from prednaska :)
+
 def format_func(value, tick_number):
+    """
+    Major ticks formatting function for graphs. Source: IZV presentation 4
+    """
     N = int(np.round(2 * value / np.pi))
-    if N>=0 and N < 3:
-        return {0:"0", 1: r"$\pi/2$", 2: r"$\pi$"}[N]
+    if N >= 0 and N < 3:
+        return {0: "0", 1: r"$\pi/2$", 2: r"$\pi$"}[N]
     elif N % 2 > 0:
         return rf"${N}\pi/2$"
     else:
         return rf"${N // 2}\pi$"
+
 
 def plot_fourier(
     S: NDArray[np.float64],
@@ -108,14 +109,14 @@ def plot_fourier(
 
     ax.set_xlabel(r"$t$")
 
-    ax.set_xlim(0,4*np.pi)
+    ax.set_xlim(0, 4*np.pi)
     ax.xaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
     ax.xaxis.set_minor_locator(plt.MultipleLocator(np.pi / 4))
     ax.xaxis.set_major_formatter(plt.FuncFormatter(format_func))
     ax.set_ylabel(r"Počet harmonických zložek")
 
     cbar = fig.colorbar(img, ax=ax, pad=0.03, aspect=20)
-    cbar.set_label('Amplituda') 
+    cbar.set_label('Amplituda')
 
     if show_figure:
         plt.show()
@@ -149,7 +150,7 @@ def generate_approx(
     t = np.linspace(0, 4 * np.pi, 500)
     S = fourier_partial_sums(t, 5)
 
-    f = np.sign(np.sin(t)) # idealny obdlznikovy signal
+    f = np.sign(np.sin(t))  # idealny obdlznikovy signal
 
     y2 = S[-1]
     ax1.plot(t, f, "k--", alpha=.5, linewidth=.7)
@@ -157,10 +158,10 @@ def generate_approx(
     ax1.plot(t, np.where(y2 < f, y2, np.nan), color="red", linewidth=.9)
 
     ax1.set_ylabel(r"f(t), S$_{5}$(t)")
-    
-    ax1.set_xlim(0,4*np.pi)
-    ax1.set_ylim(-1.5,1.5)
-    ax2.set_ylim(-1.5,1.5)
+
+    ax1.set_xlim(0, 4*np.pi)
+    ax1.set_ylim(-1.5, 1.5)
+    ax2.set_ylim(-1.5, 1.5)
     ax1.spines['top'].set_visible(False)
     ax2.spines['top'].set_visible(False)
     ax1.spines['right'].set_visible(False)
@@ -180,8 +181,8 @@ def generate_approx(
     ax2.set_xlabel(r"$t$")
 
     if show_figure:
-            plt.show()
-    
+        plt.show()
+
     if save_path is not None:
         fig.savefig(save_path, dpi=300)
 
@@ -190,12 +191,13 @@ class HTTPError(Exception):
     """Exception is thrown, if the HTTP request fails"""
     pass
 
+
 def download_data() -> Dict[str, List[Any]]:
     """Stáhne tabulku meteorologických stanic a vrátí slovník se seznamy
     positions, lats, longs a heights."""
     url = "https://ehw.fit.vutbr.cz/izv/st_zemepis_cz.html"
     response = requests.get(url)
-    if(response.status_code != 200):
+    if (response.status_code != 200):
         raise HTTPError
 
     # force utf-8 еncoding
@@ -212,7 +214,8 @@ def download_data() -> Dict[str, List[Any]]:
     soup = BeautifulSoup(response_text, 'html.parser')
     table_rows = soup.select('tr.nezvyraznit')
     for row in table_rows:
-        children = [child for child in row.children if child.name is not None]  # filter out empty lines
+        #  filter out empty lines
+        children = [child for child in row.children if child.name is not None]
         result["positions"].append(children[0].find('strong').text)
         lats_string = children[2].text[:-1]
         # replace comma with a dot, so we can convert to float
@@ -231,12 +234,11 @@ def download_data() -> Dict[str, List[Any]]:
 
 
 if __name__ == "__main__":
-    # tady si můžete dělat libovolné změny. Nemodifikujte ale strukturu výše 
+    # tady si můžete dělat libovolné změny. Nemodifikujte ale strukturu výše
     # (přidávat funkce můžete, ale při importu se nesmí nic spoštět!)
     A = fourier_partial_sums(np.linspace(-10, 10, 200), 2)
     B = fourier_partial_sums_bad(np.linspace(-10, 10, 200), 2)
     np.testing.assert_allclose(A, B, rtol=1e-12, atol=1e-12, err_msg="Vektorizace nefunguje!")
-
 
     t = np.linspace(0, 4 * np.pi, 500)
     # Pro vizualizaci lze použít referenční pomalou implementaci.
