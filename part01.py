@@ -67,6 +67,15 @@ def fourier_partial_sums(
 
     return (summed * 4) / np.pi
 
+# stolen from prednaska :)
+def format_func(value, tick_number):
+    N = int(np.round(2 * value / np.pi))
+    if N>=0 and N < 3:
+        return {0:"0", 1: r"$\pi/2$", 2: r"$\pi$"}[N]
+    elif N % 2 > 0:
+        return rf"${N}\pi/2$"
+    else:
+        return rf"${N // 2}\pi$"
 
 def plot_fourier(
     S: NDArray[np.float64],
@@ -99,15 +108,6 @@ def plot_fourier(
 
     ax.set_xlabel(r"$t$")
 
-    # stolen from prednaska :)
-    def format_func(value, tick_number):
-        N = int(np.round(2 * value / np.pi))
-        if N>=0 and N < 3:
-            return {0:"0", 1: r"$\pi/2$", 2: r"$\pi$"}[N]
-        elif N % 2 > 0:
-            return rf"${N}\pi/2$"
-        else:
-            return rf"${N // 2}\pi$"
     ax.set_xlim(0,4*np.pi)
     ax.xaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
     ax.xaxis.set_minor_locator(plt.MultipleLocator(np.pi / 4))
@@ -115,7 +115,7 @@ def plot_fourier(
     ax.set_ylabel(r"Počet harmonických zložek")
 
     cbar = fig.colorbar(img, ax=ax, pad=0.03, aspect=20)
-    cbar.set_label('Amplituda', fontsize=12) 
+    cbar.set_label('Amplituda') 
 
     if show_figure:
         plt.show()
@@ -143,7 +143,47 @@ def generate_approx(
         show_figure: zda se ma graf zobrazit.
         save_path: cesta pro ulozeni grafu (None = neukladat).
     """
-    pass
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+
+    t = np.linspace(0, 4 * np.pi, 500)
+    S = fourier_partial_sums(t, 5)
+
+    f = np.sign(np.sin(t)) # idealny obdlznikovy signal
+
+    y2 = S[-1]
+    ax1.plot(t, f, "k--", alpha=.5, linewidth=.7)
+    ax1.plot(t, np.where(y2 >= f, y2, np.nan), color="green", linewidth=.9)
+    ax1.plot(t, np.where(y2 < f, y2, np.nan), color="red", linewidth=.9)
+
+    ax1.set_ylabel(r"f(t), S$_{5}$(t)")
+    
+    ax1.set_xlim(0,4*np.pi)
+    ax1.set_ylim(-1.5,1.5)
+    ax2.set_ylim(-1.5,1.5)
+    ax1.spines['top'].set_visible(False)
+    ax2.spines['top'].set_visible(False)
+    ax1.spines['right'].set_visible(False)
+    ax2.spines['right'].set_visible(False)
+    ax1.xaxis.set_major_locator(plt.MultipleLocator(np.pi / 2))
+    ax1.xaxis.set_major_formatter(plt.FuncFormatter(format_func))
+
+    ax1.grid(color="black", alpha=.2, linewidth=.5, linestyle="--")
+    ax2.grid(color="black", alpha=.2, linewidth=.5, linestyle="--")
+
+    error = y2 - f
+    ax2.plot(t, error, "k", alpha=.4, linewidth=.6)
+    ax2.set_ylabel(r"S$_{5}$(t) - f(t)")
+    ax2.fill_between(t, np.where(error >= 0, error, np.nan), color="green", alpha=0.4)
+    ax2.fill_between(t, np.where(error < 0, error, np.nan), color="red", alpha=0.4)
+
+    ax2.set_xlabel(r"$t$")
+
+    if show_figure:
+            plt.show()
+    
+    if save_path is not None:
+        fig.savefig(save_path, dpi=300)
 
 
 def download_data() -> Dict[str, List[Any]]:
@@ -155,9 +195,6 @@ def download_data() -> Dict[str, List[Any]]:
 if __name__ == "__main__":
     # tady si můžete dělat libovolné změny. Nemodifikujte ale strukturu výše 
     # (přidávat funkce můžete, ale při importu se nesmí nic spoštět!)
-    #fourier_partial_sums(np.arange(10), 2)
-    # make sure no more code is executed after this point
-    #exit()
 
     A = fourier_partial_sums(np.linspace(-10, 10, 200), 2)
     B = fourier_partial_sums_bad(np.linspace(-10, 10, 200), 2)
@@ -167,5 +204,5 @@ if __name__ == "__main__":
     t = np.linspace(0, 4 * np.pi, 500)
     # Pro vizualizaci lze použít referenční pomalou implementaci.
     S = fourier_partial_sums_bad(t, 30)
-    plot_fourier(S, t, show_figure=True, save_path="tmp_fourier.png")
-    generate_approx(show_figure=True, save_path="tmp_approx.png")
+    plot_fourier(S, t, show_figure=False, save_path="tmp_fourier.png")
+    generate_approx(show_figure=False, save_path="tmp_approx.png")
