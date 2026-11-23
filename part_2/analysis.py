@@ -22,7 +22,14 @@ Pokud jste AI nepoužili, napište: „AI nástroje jsem nepoužil/a.“
 
 
 def load_data(filename: str, ds: str) -> pd.DataFrame:
-    pass
+    years = [2023, 2024, 2025, 2026]
+    data = []
+    with zipfile.ZipFile(filename, mode="r") as zip_file:
+        for year in years:
+            with zip_file.open(f'{year}/I{ds}.xls') as myfile:
+                data.append(pd.read_html(myfile, encoding='cp1250')[0])
+    df = pd.concat(data, ignore_index=True)
+    return df.drop(columns=[c for c in df.columns if str(c).startswith('Unnamed')])
 
 # Ukol 2: zpracovani dat
 
@@ -52,6 +59,7 @@ if __name__ == "__main__":
     # funkce.
 
     df = load_data("data_23_26.zip", "nehody")
+    print(df)
     df_consequences = load_data("data_23_26.zip", "nasledky")
     df_vehicles = load_data("data_23_26.zip", "Vozidla")
     df2 = parse_data(df, True)
