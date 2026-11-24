@@ -22,6 +22,7 @@ Pokud jste AI nepoužili, napište: „AI nástroje jsem nepoužil/a.“
 
 
 def load_data(filename: str, ds: str) -> pd.DataFrame:
+    """Return a dataframe with data from {year}/I{ds}.xls,extracted from filename."""
     years = [2023, 2024, 2025, 2026]
     data = []
     with zipfile.ZipFile(filename, mode="r") as zip_file:
@@ -35,7 +36,21 @@ def load_data(filename: str, ds: str) -> pd.DataFrame:
 
 
 def parse_data(df: pd.DataFrame, verbose: bool = False) -> pd.DataFrame:
-    pass
+    """Return cleaned up dataframe."""
+    regions = {0: "PHA", 1: "STC", 2: "JHC", 3: "PLK", 4: "ULK", 5: "HKK",
+               6: "JHM", 7: "MSK", 14: "OLK", 15: "ZLK", 16: "VYS",
+               17: "PAK", 18: "LBK", 19: "KVK"}
+
+    df_copy = df.copy()
+    converted = pd.to_datetime(df_copy['p2a'], format="%d.%m.%Y")
+    df_copy['date'] = converted
+    df_copy['region'] = df_copy['p4a'].map(regions)
+    df_copy = df_copy.drop_duplicates(subset='p1', keep='first')
+
+    if verbose:
+        size_mb = df_copy.memory_usage(deep=True).sum() / 1_000_000
+        print(f"new_size={size_mb:.1f} MB")
+    return df_copy
 
 # Ukol 3: hlavni priciny nehod podle druhu vozidla
 def plot_causes(df: pd.DataFrame, df_vehicles: pd.DataFrame,
@@ -59,14 +74,15 @@ if __name__ == "__main__":
     # funkce.
 
     df = load_data("data_23_26.zip", "nehody")
-    print(df)
-    df_consequences = load_data("data_23_26.zip", "nasledky")
-    df_vehicles = load_data("data_23_26.zip", "Vozidla")
+    #print(df)
+    #df_consequences = load_data("data_23_26.zip", "nasledky")
+    #df_vehicles = load_data("data_23_26.zip", "Vozidla")
     df2 = parse_data(df, True)
+    print(df2)
 
-    plot_causes(df2, df_vehicles, "01_causes.png")
-    plot_age(df2, df_consequences, "02_age.png", True)
-    plot_visibility(df2, "03_visibility.png")
+    #plot_causes(df2, df_vehicles, "01_causes.png")
+    #plot_age(df2, df_consequences, "02_age.png", True)
+    #plot_visibility(df2, "03_visibility.png")
 
 # Poznamka:
 # pro to, abyste se vyhnuli castemu nacitani muzete vyuzit napr

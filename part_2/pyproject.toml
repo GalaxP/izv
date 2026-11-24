@@ -1,0 +1,11 @@
+[tool.ruff.lint]
+# E, W = PEP 8 štýl (pycodestyle)
+# N    = PEP 8 pomenovania (pep8-naming)
+# I    = PEP 8 zoradenie importov (isort)
+# D    = PEP 257 docstringy (pydocstyle)
+# F    = Základné logické chyby a nepoužité premenné (Pyflakes)
+select = ["E", "W", "N", "D", "F"]
+
+[tool.ruff.lint.pydocstyle]
+# Vynúti striktné dodržiavanie PEP 257 (namiesto Google alebo NumPy štýlu)
+convention = "pep257"
