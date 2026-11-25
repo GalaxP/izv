@@ -3,6 +3,7 @@
 
 from matplotlib import pyplot as plt
 import matplotlib.dates as mdates
+from matplotlib.ticker import LogFormatterSciNotation, LogLocator, NullLocator
 import pandas as pd
 import seaborn as sns
 import numpy as np
@@ -44,7 +45,7 @@ def parse_data(df: pd.DataFrame, verbose: bool = False) -> pd.DataFrame:
     df_copy = df.copy()
     converted = pd.to_datetime(df_copy['p2a'], format="%d.%m.%Y")
     df_copy['date'] = converted
-    df_copy['region'] = df_copy['p4a'].map(regions)
+    df_copy['kraj'] = df_copy['p4a'].map(regions)
     df_copy = df_copy.drop_duplicates(subset='p1', keep='first')
 
     if verbose:
@@ -55,7 +56,67 @@ def parse_data(df: pd.DataFrame, verbose: bool = False) -> pd.DataFrame:
 # Ukol 3: hlavni priciny nehod podle druhu vozidla
 def plot_causes(df: pd.DataFrame, df_vehicles: pd.DataFrame,
                 fig_location: str = None, show_figure: bool = False):
-    pass
+    """Docstring."""
+    types = {2: "motocykl", 3: "osobní automobil",
+         5: "nákladní automobil", 6: "nákladní automobil",
+         7: "nákladní automobil"}
+    causes = {1: "nezaviněná řidičem", 2: "nepřiměřená rychlost",
+             3: "nesprávné předjíždění", 4: "nedání přednosti",
+             5: "nesprávný způsob jízdy", 6: "technická závada"}
+    df_vehicles = df_vehicles.assign(druh=df_vehicles["p44"].map(types))[["p1", "druh"]]
+    df["pricina"] = df["p12"] // 100
+    df["pricina"] = df["pricina"].map(causes)
+    merged_df = pd.merge(df[["p1", "kraj", "pricina"]], df_vehicles, on="p1",
+                         validate="1:m")
+    merged_df = merged_df.dropna(subset="druh")
+
+    grouped_df = merged_df.groupby(
+        ["kraj", "pricina", "druh"])["p1"].agg("nunique")
+
+    grouped_df = (grouped_df.rename("Počet nehod")).reset_index()
+
+    kraje = ["PHA", "STC", "JHC", "PLK", "ULK", "HKK", "JHM",
+             "MSK", "OLK", "ZLK", "VYS", "PAK", "LBK", "KVK"]
+    druhy = ["motocykl", "osobní automobil", "nákladní automobil"]
+
+    g = sns.catplot(
+        data=grouped_df,
+        x="kraj",
+        y="Počet nehod",
+        col="pricina",
+        hue="druh",
+        kind="bar",
+        col_wrap=2,
+        height=3.6,
+        aspect=2.7,
+        order=kraje,
+        hue_order=druhy,
+        col_order=list(causes.values()),
+        sharex=False,
+        sharey=False,
+        palette=["#2a78d6", "#eb6834", "#1baf7a"],
+    )
+    g.set(yscale="log", xlabel="Kraj", ylabel="Počet nehod")
+    sns.move_legend(g, "upper center", title=None, bbox_to_anchor=(0.5, 0.965), ncol=3)
+    g.figure.subplots_adjust(top=0.85, wspace=0.25, hspace=0.45)
+    g.set_titles("{col_name}")
+    g.figure.suptitle("Hlavní příčiny nehod podle druhu vozidla", y=0.998)
+    for ax in g.axes.flat:
+        ax.tick_params(labelleft=True, labelbottom=True)
+        ax.yaxis.set_major_locator(LogLocator(base=10, subs=(1.0, 0.2, 0.3, 0.6)))
+        fmt = LogFormatterSciNotation(minor_thresholds=(12, 0.4))
+        ax.yaxis.set_major_formatter(fmt)
+        ax.yaxis.set_minor_locator(NullLocator())
+        ax.tick_params(axis="y", which="both", labelsize=8)
+        ax.grid(axis="y", which="major", color="0.8", linewidth=0.6)
+        ax.set_axisbelow(True)
+        ax.spines[["top", "right"]].set_visible(False)
+
+    if fig_location:
+        g.savefig(fig_location)
+    if show_figure:
+        plt.show()
+
 
 # Ukol 4: vek osob a nasledky v jednotlivych letech
 def plot_age(df: pd.DataFrame, df_consequences: pd.DataFrame,
@@ -73,14 +134,18 @@ if __name__ == "__main__":
     # skript nebude pri testovani pousten primo, ale budou volany konkreni
     # funkce.
 
-    df = load_data("data_23_26.zip", "nehody")
-    #print(df)
+    #df = load_data("data_23_26.zip", "nehody")
     #df_consequences = load_data("data_23_26.zip", "nasledky")
     #df_vehicles = load_data("data_23_26.zip", "Vozidla")
-    df2 = parse_data(df, True)
-    print(df2)
+    #df2 = parse_data(df, True)
+    #df_consequences.to_pickle("nasledky.pkl")
+    #df_vehicles.to_pickle("vozidla.pkl")
+    #df2.to_pickle("nehody_parsed.pkl")
+    df_consequences = pd.read_pickle("nasledky.pkl")
+    df_vehicles = pd.read_pickle("vozidla.pkl")
+    df2 = pd.read_pickle("nehody_parsed.pkl")
 
-    #plot_causes(df2, df_vehicles, "01_causes.png")
+    plot_causes(df2, df_vehicles, "01_causes.png", True)
     #plot_age(df2, df_consequences, "02_age.png", True)
     #plot_visibility(df2, "03_visibility.png")
 
