@@ -12,12 +12,10 @@ import zipfile
 
 AI_USAGE = """
 Nástroje: chatgpt
-Použitie: revízia kódu pred odovzdaním, hľadanie dokumentácie“
+Použitie: revízia kódu pred odovzdaním, hľadanie dokumentácie, generovanie testov“
 """
 
 # Ukol 1: nacteni dat ze ZIP souboru
-
-
 def load_data(filename: str, ds: str) -> pd.DataFrame:
     """Return a dataframe with data from {year}/I{ds}.xls,extracted from filename."""
     years = [2023, 2024, 2025, 2026]
@@ -33,8 +31,6 @@ def load_data(filename: str, ds: str) -> pd.DataFrame:
     return df.drop(columns=[c for c in df.columns if str(c).startswith('Unnamed')])
 
 # Ukol 2: zpracovani dat
-
-
 def parse_data(df: pd.DataFrame, verbose: bool = False) -> pd.DataFrame:
     """Return cleaned up dataframe."""
     regions = {0: "PHA", 1: "STC", 2: "JHC", 3: "PLK", 4: "ULK", 5: "HKK",
@@ -46,7 +42,7 @@ def parse_data(df: pd.DataFrame, verbose: bool = False) -> pd.DataFrame:
     converted = pd.to_datetime(df_copy['p2a'], format="%d.%m.%Y")
     df_copy['date'] = converted
     # map region number to string literal
-    df_copy['kraj'] = df_copy['p4a'].map(regions)
+    df_copy['region'] = df_copy['p4a'].map(regions)
     # dedup
     df_copy = df_copy.drop_duplicates(subset='p1', keep='first')
 
@@ -75,13 +71,13 @@ def plot_causes(df: pd.DataFrame, df_vehicles: pd.DataFrame,
     df["pricina"] = df["pricina"].map(causes)
 
     # merge the two dataframes and drop rows with missing values
-    merged_df = pd.merge(df[["p1", "kraj", "pricina"]], df_vehicles, on="p1",
+    merged_df = pd.merge(df[["p1", "region", "pricina"]], df_vehicles, on="p1",
                          validate="1:m")
     merged_df = merged_df.dropna(subset="druh")
 
     # aggregation
     grouped_df = merged_df.groupby(
-        ["kraj", "pricina", "druh"])["p1"].agg("nunique")
+        ["region", "pricina", "druh"])["p1"].agg("nunique")
 
     grouped_df = (grouped_df.rename("Počet nehod")).reset_index()
 
@@ -92,7 +88,7 @@ def plot_causes(df: pd.DataFrame, df_vehicles: pd.DataFrame,
     # plot the data
     g = sns.catplot(
         data=grouped_df,
-        x="kraj",
+        x="region",
         y="Počet nehod",
         col="pricina",
         hue="druh",
@@ -237,13 +233,13 @@ def plot_visibility(df: pd.DataFrame, fig_location: str = None,
     cleaned_df = cleaned_df.dropna(subset=["viditelnost"])
     # filter regions and anything after 01/01/2026
     cleaned_df = cleaned_df[
-        cleaned_df["kraj"].isin(regions)
+        cleaned_df["region"].isin(regions)
         & (cleaned_df["date"] < pd.Timestamp("2026-01-01"))
     ]
 
     # pivot the table as excel like spreadsheet
     pivot = pd.pivot_table(data=cleaned_df,
-                           index=["date", "kraj"],
+                           index=["date", "region"],
                            columns="viditelnost",
                            values="p1",
                            aggfunc="nunique",
@@ -256,7 +252,7 @@ def plot_visibility(df: pd.DataFrame, fig_location: str = None,
         pivot.sort_index()
         .reset_index()
         .set_index("date")
-        .groupby("kraj")
+        .groupby("region")
         .resample("ME")[category_order]
         .sum()
         .reset_index()
@@ -264,7 +260,7 @@ def plot_visibility(df: pd.DataFrame, fig_location: str = None,
 
     # transform data to a format which seaborn understands
     sampled = monthly.melt(
-        id_vars=["kraj", "date"],
+        id_vars=["region", "date"],
         value_vars=category_order,
         var_name="viditelnost",
         value_name="count",
@@ -275,7 +271,7 @@ def plot_visibility(df: pd.DataFrame, fig_location: str = None,
         data=sampled,
         x="date",
         y="count",
-        col="kraj",
+        col="region",
         col_wrap=2,
         hue="viditelnost",
         kind="line",
@@ -286,7 +282,10 @@ def plot_visibility(df: pd.DataFrame, fig_location: str = None,
     )
     # titles, xlabel
     g.set_titles("Kraj: {col_name}")
-    g.set(xlabel=None)
+    g.set(
+        xlabel=None,
+        xlim=(pd.Timestamp("2023-01-01"), pd.Timestamp("2026-01-01")),
+    )
 
     # disable ylabel for plots on the right side
     for ax in g.axes.flat:
@@ -320,10 +319,6 @@ def plot_visibility(df: pd.DataFrame, fig_location: str = None,
 
 
 if __name__ == "__main__":
-    # zde je ukazka pouziti, tuto cast muzete modifikovat podle libosti
-    # skript nebude pri testovani pousten primo, ale budou volany konkreni
-    # funkce.
-
     # calculate data
     df = load_data("data_23_26.zip", "nehody")
     df_consequences = load_data("data_23_26.zip", "nasledky")
@@ -331,9 +326,9 @@ if __name__ == "__main__":
     df2 = parse_data(df, True)
 
     # save as pickle
-    #df_consequences.to_pickle("nasledky.pkl")
-    #df_vehicles.to_pickle("vozidla.pkl")
-    #df2.to_pickle("nehody_parsed.pkl")
+    df_consequences.to_pickle("nasledky.pkl")
+    df_vehicles.to_pickle("vozidla.pkl")
+    df2.to_pickle("nehody_parsed.pkl")
 
     # read from pickle
     #df_consequences = pd.read_pickle("nasledky.pkl")
@@ -343,10 +338,3 @@ if __name__ == "__main__":
     plot_causes(df2, df_vehicles, "01_causes.png")
     plot_age(df2, df_consequences, "02_age.png")
     plot_visibility(df2, "03_visibility.png")
-
-# Poznamka:
-# pro to, abyste se vyhnuli castemu nacitani muzete vyuzit napr
-# VS Code a oznaceni jako bunky (radek #%%% )
-# Pak muzete data jednou nacist a dale ladit jednotlive funkce
-# Pripadne si muzete vysledny dataframe ulozit nekam na disk (pro ladici
-# ucely) a nacitat jej naparsovany z disku
