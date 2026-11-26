@@ -121,7 +121,69 @@ def plot_causes(df: pd.DataFrame, df_vehicles: pd.DataFrame,
 # Ukol 4: vek osob a nasledky v jednotlivych letech
 def plot_age(df: pd.DataFrame, df_consequences: pd.DataFrame,
              fig_location: str = None, show_figure: bool = False):
-    pass
+    consequences = {1: "usmrcení", 2: "těžké zranění", 3: "lehké zranění"}
+
+    cleaned_consequences = df_consequences.copy()
+    cleaned_consequences["nasledek"] = cleaned_consequences["p59g"].map(consequences)
+    cleaned_consequences = cleaned_consequences.dropna(subset=["nasledek"])
+
+    vek = pd.to_numeric(cleaned_consequences["p59d"], errors="coerce")
+    cleaned_consequences = cleaned_consequences[vek.notna() & (vek >= 0)]
+    cleaned_consequences["vekova_skupina"] = pd.cut(cleaned_consequences["vek"]
+        if "vek" in cleaned_consequences else vek,
+        bins=[0, 18, 25, 45, 65, np.inf],
+        labels=["0-17", "18-24", "25-44", "45-64", "65+"],
+        right=False)
+
+
+    cleaned_df = df.copy()
+    cleaned_df['rok'] = cleaned_df['date'].dt.year
+
+    merged_df = (
+        cleaned_consequences[
+            ["p1", "vekova_skupina", "nasledek"]]
+            .merge(cleaned_df[["p1", "rok"]], on="p1", validate="m:1")
+    )
+
+    merged_df = merged_df[merged_df["rok"] < 2026]
+    merged_df["pocet_osob"] = 1
+    merged_df = (
+        merged_df.groupby(["vekova_skupina", "rok", "nasledek"])["pocet_osob"]
+        .sum()
+    )
+
+    merged_df = (merged_df.rename("Počet osob")).reset_index()
+
+    g = sns.catplot(
+        data=merged_df,
+        x="vekova_skupina",
+        y="Počet osob",
+        col="nasledek",
+        hue="rok",
+        kind="bar",
+        height=4,
+        aspect=1,
+        #order=kraje,
+        #hue_order=druhy,
+        col_order=list(consequences.values()),
+        sharex=False,
+        sharey=False,
+        palette="flare"
+    )
+    g.set_titles("Následek: {col_name}")
+    g.set(xlabel="Věk osoby", ylabel="Počet osob")
+    for ax in g.axes.flat:
+        ax.tick_params(labelleft=True, labelbottom=True)
+        ax.grid(axis="y", which="major", color="0.8", linewidth=0.6)
+        ax.set_axisbelow(True)
+
+    g.figure.subplots_adjust(wspace=0.25)
+
+    if fig_location:
+        g.savefig(fig_location)
+    if show_figure:
+        plt.show()
+
 
 # Ukol 5: viditelnost (den / noc) v case
 def plot_visibility(df: pd.DataFrame, fig_location: str = None,
@@ -145,8 +207,8 @@ if __name__ == "__main__":
     df_vehicles = pd.read_pickle("vozidla.pkl")
     df2 = pd.read_pickle("nehody_parsed.pkl")
 
-    plot_causes(df2, df_vehicles, "01_causes.png", True)
-    #plot_age(df2, df_consequences, "02_age.png", True)
+    #plot_causes(df2, df_vehicles, "01_causes.png", True)
+    plot_age(df2, df_consequences, "02_age.png", False)
     #plot_visibility(df2, "03_visibility.png")
 
 # Poznamka:
