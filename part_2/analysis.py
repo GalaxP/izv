@@ -121,6 +121,7 @@ def plot_causes(df: pd.DataFrame, df_vehicles: pd.DataFrame,
 # Ukol 4: vek osob a nasledky v jednotlivych letech
 def plot_age(df: pd.DataFrame, df_consequences: pd.DataFrame,
              fig_location: str = None, show_figure: bool = False):
+    """Plot consequences of car crashes by age and year."""
     consequences = {1: "usmrcení", 2: "těžké zranění", 3: "lehké zranění"}
 
     cleaned_consequences = df_consequences.copy()
