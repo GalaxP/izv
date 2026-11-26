@@ -55,7 +55,7 @@ def parse_data(df: pd.DataFrame, verbose: bool = False) -> pd.DataFrame:
 # Ukol 3: hlavni priciny nehod podle druhu vozidla
 def plot_causes(df: pd.DataFrame, df_vehicles: pd.DataFrame,
                 fig_location: str = None, show_figure: bool = False):
-    """Docstring."""
+    """Plot crash causes by regions and vehichle type."""
     types = {2: "motocykl", 3: "osobní automobil",
          5: "nákladní automobil", 6: "nákladní automobil",
          7: "nákladní automobil"}
